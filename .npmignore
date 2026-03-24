@@ -1,0 +1,5 @@
+.github
+bun.lock
+tsconfig.json
+src/*.test.ts
+src/**/*.test.ts

@@ -2,15 +2,25 @@
   "name": "mcp-health",
   "version": "0.1.0",
   "description": "npm audit for MCP servers",
+  "license": "MIT",
   "type": "module",
   "main": "src/index.ts",
   "bin": {
     "mcp-health": "src/index.ts"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/doanbactam/mcp-health.git"
+  },
+  "homepage": "https://github.com/doanbactam/mcp-health#readme",
+  "bugs": {
+    "url": "https://github.com/doanbactam/mcp-health/issues"
+  },
   "scripts": {
     "start": "bun run src/index.ts",
     "test": "bun test",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "release": "node scripts/release.mjs"
   },
   "dependencies": {
     "picocolors": "^1.1.1"

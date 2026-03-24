@@ -8,6 +8,31 @@
 bun install -g mcp-health
 ```
 
+## npm
+
+https://www.npmjs.com/package/mcp-health
+
+GitHub Releases can publish straight to npm via `.github/workflows/release.yml`.
+To enable it, add an `NPM_TOKEN` repository secret with publish rights.
+
+## Release
+
+```bash
+# bump patch version, commit, tag, push, create GitHub Release
+bun run release
+
+# or choose the version bump explicitly
+bun run release minor
+bun run release major
+bun run release 0.2.0
+```
+
+The release script requires:
+- a clean git working tree
+- `gh auth login`
+
+After the GitHub Release is created, the Actions workflow publishes the same version to npm.
+
 ## Usage
 
 ```bash
