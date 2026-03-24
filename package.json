@@ -8,7 +8,9 @@
     "mcp-health": "src/index.ts"
   },
   "scripts": {
-    "start": "bun run src/index.ts"
+    "start": "bun run src/index.ts",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "picocolors": "^1.1.1"

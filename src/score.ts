@@ -1,17 +1,18 @@
 import type { GitHubData } from "./sources/github.js";
+import type { IssueStats } from "./sources/github.js";
 import type { NpmData } from "./sources/npm.js";
 import type { CVE } from "./sources/osv.js";
 
 export interface Signals {
   last_commit_days: number | null;
-  weekly_downloads: number;
+  weekly_downloads: number | null;
   cves: CVE[];
-  open_issues: number;
-  closed_issues: number;
+  open_issues: number | null;
+  closed_issues: number | null;
   license: string | null;
-  has_security_md: boolean;
-  deprecated: boolean;
-  stars: number;
+  has_security_md: boolean | null;
+  deprecated: boolean | null;
+  stars: number | null;
 }
 
 export interface ScoreResult {
@@ -23,18 +24,19 @@ export interface ScoreResult {
 export function calculateScore(
   github: GitHubData | null,
   npm: NpmData | null,
-  cves: CVE[]
+  cves: CVE[],
+  issueStats: IssueStats | null
 ): ScoreResult {
   const signals: Signals = {
     last_commit_days: github?.lastCommitDays ?? null,
-    weekly_downloads: npm?.weeklyDownloads ?? 0,
+    weekly_downloads: npm?.weeklyDownloads ?? null,
     cves,
-    open_issues: github?.openIssues ?? 0,
-    closed_issues: 0, // Will be updated if we have issue stats
+    open_issues: issueStats?.open ?? null,
+    closed_issues: issueStats?.closed ?? null,
     license: github?.licenseName ?? null,
-    has_security_md: github?.hasSecurityMd ?? false,
-    deprecated: npm?.deprecated ?? false,
-    stars: github?.stars ?? 0,
+    has_security_md: github?.hasSecurityMd ?? null,
+    deprecated: npm?.deprecated ?? null,
+    stars: github?.stars ?? null,
   };
 
   let score = 0;
@@ -49,29 +51,21 @@ export function calculateScore(
   score -= cvePenalty;
 
   // npm downloads > 1k/week: +15pts
-  if (signals.weekly_downloads > 1000) {
+  if (signals.weekly_downloads !== null && signals.weekly_downloads > 1000) {
     score += 15;
   }
 
   // Open issues ratio < 20%: +10pts (need both open and closed)
-  // Note: We approximate this since we don't always have closed issue count
-  if (signals.open_issues > 0) {
-    // If we don't have closed issues, estimate based on repo activity
+  if (signals.open_issues !== null && signals.closed_issues !== null) {
     const totalIssues = signals.open_issues + signals.closed_issues;
     if (totalIssues > 0) {
       const openRatio = signals.open_issues / totalIssues;
       if (openRatio < 0.2) {
         score += 10;
       }
-    } else if (signals.last_commit_days !== null && signals.last_commit_days < 30) {
-      // Active repo with few issues = likely low issue ratio
-      if (signals.open_issues < 10) {
-        score += 10;
-      }
+    } else {
+      score += 10;
     }
-  } else {
-    // No open issues is good
-    score += 10;
   }
 
   // Has LICENSE file: +10pts
@@ -80,17 +74,17 @@ export function calculateScore(
   }
 
   // Has SECURITY.md: +10pts
-  if (signals.has_security_md) {
+  if (signals.has_security_md === true) {
     score += 10;
   }
 
   // Not deprecated: +15pts
-  if (!signals.deprecated) {
+  if (signals.deprecated === false) {
     score += 15;
   }
 
   // Stars > 100: +10pts
-  if (signals.stars > 100) {
+  if (signals.stars !== null && signals.stars > 100) {
     score += 10;
   }
 
@@ -108,13 +102,4 @@ export function calculateScore(
   }
 
   return { score, status, signals };
-}
-
-export function updateSignalsWithIssueStats(
-  signals: Signals,
-  open: number,
-  closed: number
-): void {
-  signals.open_issues = open;
-  signals.closed_issues = closed;
 }

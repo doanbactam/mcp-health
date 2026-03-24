@@ -75,23 +75,36 @@ export async function fetchNpmData(packageName: string): Promise<NpmData> {
   }
 }
 
-function extractGitHubRepo(url: string | undefined): string | undefined {
+export function extractGitHubRepo(url: string | undefined): string | undefined {
   if (!url) return undefined;
 
-  // Handle various GitHub URL formats
-  // git+https://github.com/owner/repo.git
-  // https://github.com/owner/repo
-  // github:owner/repo
-  // owner/repo
+  const normalized = url.replace(/^git\+/, "");
 
-  const match = url.match(
-    /(?:github\.com[/:]|^github:|^)?([a-zA-Z0-9_-]+\/[a-zA-Z0-9_.-]+)/
-  );
-  if (match) {
-    let repo = match[1];
-    // Remove .git suffix
-    repo = repo.replace(/\.git$/, "");
-    return repo;
+  if (normalized.startsWith("github:")) {
+    return cleanRepoPath(normalized.slice("github:".length));
   }
-  return undefined;
+
+  if (/^[a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+$/.test(normalized)) {
+    return cleanRepoPath(normalized);
+  }
+
+  try {
+    const parsed = new URL(normalized);
+    if (parsed.hostname !== "github.com" && parsed.hostname !== "www.github.com") {
+      return undefined;
+    }
+
+    return cleanRepoPath(parsed.pathname);
+  } catch {
+    return undefined;
+  }
+}
+
+function cleanRepoPath(value: string): string | undefined {
+  const trimmed = value.replace(/^\/+/, "").replace(/\/+$/, "").replace(/\.git$/, "");
+  if (!/^[a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+$/.test(trimmed)) {
+    return undefined;
+  }
+
+  return trimmed;
 }

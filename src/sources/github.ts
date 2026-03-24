@@ -9,6 +9,13 @@ export interface GitHubData {
   error?: string;
 }
 
+export interface IssueStats {
+  open: number;
+  closed: number;
+  known: boolean;
+  error?: string;
+}
+
 export async function fetchGitHubData(repo: string): Promise<GitHubData> {
   const [owner, name] = repo.split("/");
   if (!owner || !name) {
@@ -88,22 +95,7 @@ export async function fetchGitHubData(repo: string): Promise<GitHubData> {
       licenseName = repoData.license.spdx_id || repoData.license.name;
     }
 
-    // Check for SECURITY.md
-    let hasSecurityMd = false;
-    try {
-      const securityRes = await fetch(
-        `https://api.github.com/repos/${owner}/${name}/contents/SECURITY.md`,
-        {
-          headers: {
-            Accept: "application/vnd.github.v3+json",
-            "User-Agent": "mcp-health/0.1.0",
-          },
-        }
-      );
-      hasSecurityMd = securityRes.ok;
-    } catch {
-      hasSecurityMd = false;
-    }
+    const hasSecurityMd = await fetchSecurityPolicy(owner, name);
 
     return {
       stars: repoData.stargazers_count || 0,
@@ -129,9 +121,11 @@ export async function fetchGitHubData(repo: string): Promise<GitHubData> {
 }
 
 // Fetch additional issue stats
-export async function fetchIssueStats(repo: string): Promise<{ open: number; closed: number }> {
+export async function fetchIssueStats(repo: string): Promise<IssueStats> {
   const [owner, name] = repo.split("/");
-  if (!owner || !name) return { open: 0, closed: 0 };
+  if (!owner || !name) {
+    return { open: 0, closed: 0, known: false, error: "Invalid repo format" };
+  }
 
   try {
     // Get open issues count
@@ -156,14 +150,47 @@ export async function fetchIssueStats(repo: string): Promise<{ open: number; clo
       }
     );
 
-    const openData = openRes.ok ? await openRes.json() : { total_count: 0 };
-    const closedData = closedRes.ok ? await closedRes.json() : { total_count: 0 };
+    if (!openRes.ok || !closedRes.ok) {
+      return {
+        open: 0,
+        closed: 0,
+        known: false,
+        error: "Unable to fetch GitHub issue stats",
+      };
+    }
+
+    const openData = await openRes.json();
+    const closedData = await closedRes.json();
 
     return {
       open: openData.total_count || 0,
       closed: closedData.total_count || 0,
+      known: true,
     };
   } catch {
-    return { open: 0, closed: 0 };
+    return { open: 0, closed: 0, known: false, error: "Unable to fetch GitHub issue stats" };
   }
+}
+
+async function fetchSecurityPolicy(owner: string, name: string): Promise<boolean> {
+  const headers = {
+    Accept: "application/vnd.github.v3+json",
+    "User-Agent": "mcp-health/0.1.0",
+  };
+  const candidates = ["SECURITY.md", ".github/SECURITY.md", "docs/SECURITY.md"];
+
+  for (const path of candidates) {
+    try {
+      const res = await fetch(`https://api.github.com/repos/${owner}/${name}/contents/${path}`, {
+        headers,
+      });
+      if (res.ok) {
+        return true;
+      }
+    } catch {
+      // Keep probing the remaining well-known paths.
+    }
+  }
+
+  return false;
 }

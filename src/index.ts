@@ -7,8 +7,6 @@ mcp-health — npm audit for MCP servers
 
 Usage:
   mcp-health check <package>   Check health of an MCP server
-  mcp-health audit <file>      Check all servers in mcp.json (v0.2)
-  mcp-health badge <package>   Generate badge markdown (v0.2)
 
 Options:
   --json   Output as JSON

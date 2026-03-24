@@ -30,8 +30,12 @@ export function formatTerminal(packageName: string, result: ScoreResult): string
   }
 
   // Downloads
-  const downloadsFormatted = formatNumber(signals.weekly_downloads);
-  lines.push(`  ${pc.bold("Downloads")}   ${downloadsFormatted}${pc.gray("/week")}`);
+  if (signals.weekly_downloads !== null) {
+    const downloadsFormatted = formatNumber(signals.weekly_downloads);
+    lines.push(`  ${pc.bold("Downloads")}   ${downloadsFormatted}${pc.gray("/week")}`);
+  } else {
+    lines.push(`  ${pc.bold("Downloads")}   ${pc.gray("unknown")}`);
+  }
 
   // CVEs
   if (signals.cves.length === 0) {
@@ -42,12 +46,16 @@ export function formatTerminal(packageName: string, result: ScoreResult): string
   }
 
   // Issues
-  const totalIssues = signals.open_issues + signals.closed_issues;
-  if (totalIssues > 0) {
-    const ratio = ((signals.open_issues / totalIssues) * 100).toFixed(0);
-    lines.push(
-      `  ${pc.bold("Issues")}      ${signals.open_issues} open / ${signals.closed_issues} closed (${ratio}%)`
-    );
+  if (signals.open_issues !== null && signals.closed_issues !== null) {
+    const totalIssues = signals.open_issues + signals.closed_issues;
+    if (totalIssues === 0) {
+      lines.push(`  ${pc.bold("Issues")}      0 open / 0 closed`);
+    } else {
+      const ratio = ((signals.open_issues / totalIssues) * 100).toFixed(0);
+      lines.push(
+        `  ${pc.bold("Issues")}      ${signals.open_issues} open / ${signals.closed_issues} closed (${ratio}%)`
+      );
+    }
   } else {
     lines.push(`  ${pc.bold("Issues")}      ${pc.gray("no data")}`);
   }
@@ -60,17 +68,23 @@ export function formatTerminal(packageName: string, result: ScoreResult): string
   }
 
   // Security.md
-  if (signals.has_security_md) {
+  if (signals.has_security_md === true) {
     lines.push(`  ${pc.bold("Security")}    ${pc.green("SECURITY.md ✓")}`);
+  } else if (signals.has_security_md === null) {
+    lines.push(`  ${pc.bold("Security")}    ${pc.gray("unknown")}`);
   }
 
   // Deprecated warning
-  if (signals.deprecated) {
+  if (signals.deprecated === true) {
     lines.push(`  ${pc.bold("Warning")}     ${pc.red("DEPRECATED")}`);
   }
 
   // Stars
-  lines.push(`  ${pc.bold("Stars")}       ${formatNumber(signals.stars)}`);
+  if (signals.stars !== null) {
+    lines.push(`  ${pc.bold("Stars")}       ${formatNumber(signals.stars)}`);
+  } else {
+    lines.push(`  ${pc.bold("Stars")}       ${pc.gray("unknown")}`);
+  }
 
   // Footer
   lines.push("");
